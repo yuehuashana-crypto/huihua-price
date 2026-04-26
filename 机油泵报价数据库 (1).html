@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机油泵报价数据库</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #2563eb;
+    --accent2: #1d4ed8;
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --min-color: #f87171;
+    --font: 'Noto Sans SC', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .status-bar {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 11px; color: var(--text2);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text3);
+    display: inline-block;
+  }
+  .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.error { background: var(--red); }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Config Panel ── */
+  .config-group { display: flex; flex-direction: column; gap: 8px; }
+  .config-label { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+  .config-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .config-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Search Box ── */
+  .search-wrap { position: relative; }
+  .search-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px 10px 36px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+  .search-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); font-size: 14px; pointer-events: none;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text3); }
+  .btn-success {
+    background: var(--green);
+    color: white;
+  }
+  .btn-success:hover { background: #15803d; }
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+  }
+  .btn-danger:hover { background: rgba(220,38,38,0.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Edit Panel ── */
+  .edit-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .edit-row { display: flex; flex-direction: column; gap: 4px; }
+  .edit-label { font-size: 10px; color: var(--text3); }
+  .edit-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 9px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 100%;
+  }
+  .edit-input:focus { outline: none; border-color: var(--accent); }
+  select.edit-input {
+    cursor: pointer;
+  }
+
+  /* ── Main Content ── */
+  .main {
+    overflow: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Stats Bar ── */
+  .stats-bar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 120px;
+  }
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stat-lbl { font-size: 10px; color: var(--text3); }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    flex: 1;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { color: var(--text); }
+  tbody tr {
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  tbody tr:hover { background: rgba(37,99,235,0.05); }
+  tbody tr.selected { background: rgba(37,99,235,0.12); }
+  tbody tr:last-child { border-bottom: none; }
+  td {
+    padding: 9px 12px;
+    color: var(--text2);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  td.oe { font-family: var(--mono); font-size: 11px; color: var(--text); }
+  td.model { color: var(--text); font-size: 11px; }
+  td.price { font-family: var(--mono); text-align: right; color: var(--text2); }
+  td.price.has-val { color: var(--text); }
+  td.min-price { font-family: var(--mono); font-weight: 600; color: var(--min-color); text-align: right; }
+  td.supplier { font-size: 11px; color: var(--amber); }
+  td.count { font-family: var(--mono); text-align: center; }
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .badge-blue { background: rgba(37,99,235,0.2); color: #60a5fa; }
+  .badge-green { background: rgba(22,163,74,0.2); color: #4ade80; }
+
+  /* ── Loading / Empty ── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 40px; opacity: 0.4; }
+  .empty-title { font-size: 14px; font-weight: 500; }
+  .empty-sub { font-size: 12px; text-align: center; line-height: 1.6; }
+
+  .loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 40px; color: var(--text3);
+  }
+  .spin {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 999;
+  }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    animation: slideIn 0.2s ease;
+    min-width: 240px;
+  }
+  .toast.success { border-color: var(--green); }
+  .toast.error { border-color: var(--red); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Highlight ── */
+  mark {
+    background: rgba(251,191,36,0.3);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  .row-count {
+    font-size: 11px; color: var(--text3); padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚙</div>
+    机油泵报价数据库
+  </div>
+  <div class="status-bar">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">未连接</span>
+    <span>|</span>
+    <span id="lastSync" style="font-family:var(--mono)">--</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <!-- Config -->
+    <div>
+      <div class="section-title">📡 表格配置</div>
+      <div class="config-group">
+        <div>
+          <div class="config-label">API 密钥</div>
+          <input class="config-input" id="apiKey" type="password"
+            placeholder="AIzaSy..." value="AIzaSyC897lq9dVszaKMHCFFGrKAjoAdtcFHXfk">
+        </div>
+        <div>
+          <div class="config-label">表格 ID</div>
+          <input class="config-input" id="sheetId"
+            placeholder="spreadsheet id..."
+            value="1I6g2M4q0umxft24Ro2IgK75sJ-dXWsjOGkUTtzqBujU">
+        </div>
+        <div>
+          <div class="config-label">工作表名称</div>
+          <input class="config-input" id="sheetName" value="价格对比分析">
+        </div>
+        <button class="btn btn-primary" onclick="loadData()">
+          🔄 加载数据
+        </button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Search -->
+    <div>
+      <div class="section-title">🔍 搜索查询</div>
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" id="searchInput"
+          placeholder="输入OE编号或车型..."
+          oninput="filterData()">
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" style="width:auto;padding:4px 10px;font-size:11px" onclick="filterBySupplier('')">全部</button>
+        <button class="btn btn-secondary" style="width:auto;padding:4px 10px;font-size:11px" onclick="filterBySupplier('惠华')">惠华</button>
+        <button class="btn btn-secondary" style="width:auto;padding:4px 10px;font-size:11px" onclick="filterBySupplier('沃勒')">沃勒</button>
+        <button class="btn btn-secondary" style="width:auto;padding:4px 10px;font-size:11px" onclick="filterBySupplier('神航')">神航</button>
+        <button class="btn btn-secondary" style="width:auto;padding:4px 10px;font-size:11px" onclick="filterBySupplier('玉旋')">玉旋</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Edit Panel -->
+    <div>
+      <div class="section-title">✏️ 修改价格</div>
+      <div class="edit-panel">
+        <div class="edit-row">
+          <div class="edit-label">选中行 OE编号</div>
+          <input class="edit-input" id="editOE" placeholder="点击表格行选择..." readonly>
+        </div>
+        <div class="edit-row">
+          <div class="edit-label">供应商</div>
+          <select class="edit-input" id="editSupplier">
+            <option value="惠华报价">惠华报价</option>
+            <option value="沃勒含税">沃勒含税</option>
+            <option value="玉旋含税">玉旋含税</option>
+            <option value="神航含税">神航含税</option>
+            <option value="立众含税">立众含税</option>
+            <option value="约翰含税">约翰含税</option>
+            <option value="华工含税">华工含税</option>
+            <option value="缤元(含税换算)">缤元(含税换算)</option>
+            <option value="不凡(含税换算)">不凡(含税换算)</option>
+          </select>
+        </div>
+        <div class="edit-row">
+          <div class="edit-label">新价格（元）</div>
+          <input class="edit-input" id="editPrice" type="number" placeholder="输入价格...">
+        </div>
+        <div class="edit-row">
+          <div class="edit-label">备注（可选）</div>
+          <input class="edit-input" id="editNote" placeholder="客户/来源备注...">
+        </div>
+        <button class="btn btn-success" onclick="updatePrice()" id="updateBtn" disabled>
+          💾 保存到谷歌表格
+        </button>
+        <button class="btn btn-danger" onclick="clearEdit()">✕ 取消</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Stats -->
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat-card">
+        <div class="stat-val" id="statTotal">0</div>
+        <div class="stat-lbl">总型号数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statFiltered">0</div>
+        <div class="stat-lbl">当前显示</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statMulti">0</div>
+        <div class="stat-lbl">多家报价</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statNoPrice">0</div>
+        <div class="stat-lbl">无报价</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">尚未加载数据</div>
+        <div class="empty-sub">在左侧确认配置后<br>点击「加载数据」开始使用</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── State ──
+let allData = [];
+let filteredData = [];
+let selectedRow = null;
+let selectedExcelRow = null;
+let supplierFilter = '';
+const SUPPLIERS = ['惠华报价','沃勒含税','玉旋含税','神航含税','立众含税','约翰含税','华工含税','缤元(含税换算)','不凡(含税换算)'];
+// col index (0-based): D=3,E=4,F=5,G=6,H=7,I=8,J=9,K=10,L=11
+const SUP_COL = {
+  '惠华报价':3,'沃勒含税':4,'玉旋含税':5,'神航含税':6,
+  '立众含税':7,'约翰含税':8,'华工含税':9,
+  '缤元(含税换算)':10,'不凡(含税换算)':11
+};
+
+// ── API Helpers ──
+function getConfig() {
+  return {
+    apiKey: document.getElementById('apiKey').value.trim(),
+    sheetId: document.getElementById('sheetId').value.trim(),
+    sheetName: document.getElementById('sheetName').value.trim(),
+  };
+}
+
+async function loadData() {
+  const { apiKey, sheetId, sheetName } = getConfig();
+  if (!apiKey || !sheetId) { toast('请填写API密钥和表格ID', 'error'); return; }
+
+  setStatus('loading');
+  document.getElementById('tableWrap').innerHTML = '<div class="loading"><div class="spin"></div>正在从谷歌表格加载数据...</div>';
+  document.getElementById('statsBar').style.display = 'none';
+
+  try {
+    const range = encodeURIComponent(`${sheetName}!A1:O1000`);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || res.statusText);
+    }
+    const data = await res.json();
+    const rows = data.values || [];
+
+    // rows[0]=标题 rows[1]=说明 rows[2]=列头 rows[3+]=数据
+    allData = rows.slice(3).map((row, i) => ({
+      excelRow: i + 4, // 1-based, starting from row 4
+      oe: row[0] || '',
+      oe2: row[1] || '',
+      oe3: row[2] || '',
+      hui: parsePrice(row[3]),
+      wo: parsePrice(row[4]),
+      yu: parsePrice(row[5]),
+      shen: parsePrice(row[6]),
+      li: parsePrice(row[7]),
+      yue: parsePrice(row[8]),
+      hua: parsePrice(row[9]),
+      bin: parsePrice(row[10]),
+      buf: parsePrice(row[11]),
+      minPrice: parsePrice(row[12]),
+      minSup: row[13] || '',
+      count: row[14] || '',
+    })).filter(r => r.oe || r.oe2);
+
+    setStatus('connected');
+    updateStats();
+    filterData();
+    toast(`✅ 已加载 ${allData.length} 条数据`, 'success');
+    document.getElementById('lastSync').textContent = new Date().toLocaleTimeString('zh-CN');
+  } catch(e) {
+    setStatus('error');
+    document.getElementById('tableWrap').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-title">加载失败</div>
+        <div class="empty-sub">${e.message}<br><br>请检查：API密钥是否正确、表格是否已共享</div>
+      </div>`;
+    toast('加载失败：' + e.message, 'error');
+  }
+}
+
+function parsePrice(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = parseFloat(String(v).replace(/[^\d.]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+// ── Filter ──
+function filterBySupplier(sup) {
+  supplierFilter = sup;
+  filterData();
+}
+
+function filterData() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  filteredData = allData.filter(r => {
+    const matchQ = !q ||
+      r.oe.toLowerCase().includes(q) ||
+      r.oe2.toLowerCase().includes(q) ||
+      r.oe3.toLowerCase().includes(q);
+    const matchSup = !supplierFilter || r.minSup.includes(supplierFilter);
+    return matchQ && matchSup;
+  });
+  renderTable();
+}
+
+// ── Render ──
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  document.getElementById('statFiltered').textContent = filteredData.length;
+
+  if (!filteredData.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">没有匹配结果</div><div class="empty-sub">换个关键词试试</div></div>`;
+    return;
+  }
+
+  const q = document.getElementById('searchInput').value.trim();
+
+  function hl(text) {
+    if (!q || !text) return text || '';
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return String(text).replace(re, '<mark>$1</mark>');
+  }
+
+  function priceCell(val) {
+    if (val === null) return `<td class="price">—</td>`;
+    return `<td class="price has-val">¥${val}</td>`;
+  }
+
+  const rows = filteredData.map((r, i) => {
+    const sel = selectedRow === i ? 'selected' : '';
+    const oeShort = r.oe.split('\n')[0];
+    const oe2Short = r.oe2.split('\n')[0];
+    return `<tr class="${sel}" onclick="selectRow(${i})">
+      <td class="oe" title="${r.oe}">${hl(oeShort)}</td>
+      <td class="model" title="${r.oe2}">${hl(oe2Short)}</td>
+      ${priceCell(r.hui)}
+      ${priceCell(r.wo)}
+      ${priceCell(r.yu)}
+      ${priceCell(r.shen)}
+      ${priceCell(r.li)}
+      ${priceCell(r.yue)}
+      ${priceCell(r.hua)}
+      ${priceCell(r.bin)}
+      ${priceCell(r.buf)}
+      <td class="min-price">${r.minPrice !== null ? '¥'+r.minPrice : '—'}</td>
+      <td class="supplier">${r.minSup ? `<span class="badge badge-blue">${r.minSup.replace('含税','').replace('报价','').replace('(含税换算)','')}</span>` : '—'}</td>
+      <td class="count">${r.count || '0'}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:140px">OE编号</th>
+          <th style="min-width:160px">车型</th>
+          <th>惠华</th><th>沃勒</th><th>玉旋</th><th>神航</th>
+          <th>立众</th><th>约翰</th><th>华工</th><th>缤元</th><th>不凡</th>
+          <th>最低价</th><th>最低供应商</th><th>报价数</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="row-count">显示 ${filteredData.length} / ${allData.length} 条</div>
+  `;
+}
+
+function updateStats() {
+  document.getElementById('statsBar').style.display = 'flex';
+  document.getElementById('statTotal').textContent = allData.length;
+  document.getElementById('statFiltered').textContent = allData.length;
+  document.getElementById('statMulti').textContent = allData.filter(r => parseInt(r.count) >= 2).length;
+  document.getElementById('statNoPrice').textContent = allData.filter(r => !r.minPrice).length;
+}
+
+// ── Select Row ──
+function selectRow(idx) {
+  selectedRow = idx;
+  const r = filteredData[idx];
+  selectedExcelRow = r.excelRow;
+
+  document.getElementById('editOE').value = r.oe.split('\n')[0];
+  document.getElementById('editPrice').value = '';
+  document.getElementById('editNote').value = '';
+  document.getElementById('updateBtn').disabled = false;
+  renderTable();
+}
+
+function clearEdit() {
+  selectedRow = null;
+  selectedExcelRow = null;
+  document.getElementById('editOE').value = '';
+  document.getElementById('editPrice').value = '';
+  document.getElementById('editNote').value = '';
+  document.getElementById('updateBtn').disabled = true;
+  renderTable();
+}
+
+// ── Update Price ──
+async function updatePrice() {
+  if (!selectedExcelRow) { toast('请先选择一行', 'error'); return; }
+  const { apiKey, sheetId, sheetName } = getConfig();
+  const supplier = document.getElementById('editSupplier').value;
+  const price = document.getElementById('editPrice').value.trim();
+  const note = document.getElementById('editNote').value.trim();
+
+  if (!price) { toast('请输入新价格', 'error'); return; }
+
+  const colIdx = SUP_COL[supplier];
+  if (colIdx === undefined) { toast('供应商映射错误', 'error'); return; }
+
+  // Convert col index to letter (0-based: 0=A)
+  const colLetter = String.fromCharCode(65 + colIdx);
+  const cellRange = `${sheetName}!${colLetter}${selectedExcelRow}`;
+
+  // If note, write to OE3 column (C)
+  const updates = [
+    { range: `${sheetName}!${colLetter}${selectedExcelRow}`, values: [[parseFloat(price)]] }
+  ];
+  if (note) {
+    updates.push({ range: `${sheetName}!C${selectedExcelRow}`, values: [[note]] });
+  }
+
+  document.getElementById('updateBtn').disabled = true;
+  document.getElementById('updateBtn').textContent = '⏳ 保存中...';
+
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchUpdate?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        valueInputOption: 'USER_ENTERED',
+        data: updates
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || '写入失败');
+    }
+
+    // Update local data
+    const dataIdx = allData.findIndex(r => r.excelRow === selectedExcelRow);
+    if (dataIdx !== -1) {
+      const priceMap = { '惠华报价':'hui','沃勒含税':'wo','玉旋含税':'yu','神航含税':'shen','立众含税':'li','约翰含税':'yue','华工含税':'hua','缤元(含税换算)':'bin','不凡(含税换算)':'buf' };
+      allData[dataIdx][priceMap[supplier]] = parseFloat(price);
+      if (note) allData[dataIdx].oe3 = note;
+    }
+
+    updateStats();
+    filterData();
+    toast(`✅ ${supplier} 价格已更新为 ¥${price}`, 'success');
+    document.getElementById('lastSync').textContent = new Date().toLocaleTimeString('zh-CN');
+    clearEdit();
+  } catch(e) {
+    toast('保存失败：' + e.message, 'error');
+  } finally {
+    document.getElementById('updateBtn').disabled = false;
+    document.getElementById('updateBtn').textContent = '💾 保存到谷歌表格';
+  }
+}
+
+// ── Status ──
+function setStatus(s) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot';
+  if (s === 'connected') { dot.classList.add('connected'); txt.textContent = '已连接'; }
+  else if (s === 'error') { dot.classList.add('error'); txt.textContent = '连接失败'; }
+  else { txt.textContent = '加载中...'; }
+}
+
+// ── Toast ──
+function toast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type==='success'?'✓':'✕'}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── Enter key to search ──
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') filterData();
+});
+
+// Auto-load on start
+window.addEventListener('load', () => {
+  setTimeout(loadData, 300);
+});
+</script>
+</body>
+</html>
